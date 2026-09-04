@@ -1,0 +1,17 @@
+[project]
+name = "jvs"
+version = "0.0.1"
+description = "Placeholder release reserving the jvs package name."
+readme = "README.md"
+authors = [
+    { name = "Jake Van Slyke", email = "jakervanslyke@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = []
+
+[project.scripts]
+jvs = "jvs:main"
+
+[build-system]
+requires = ["uv_build>=0.12.5,<0.13.0"]
+build-backend = "uv_build"

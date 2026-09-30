@@ -27,4 +27,4 @@ Overall, just a personal medium to do things how I want without imposing anyone 
 
 #### cli & tui
 
-`cyclopts` for CLI command parsing, `rich` for terminal rendering/formatting, `textual` for full TUI framework, optional `prompt_toolkit` later for interactive input / REPL / shell behavior
+`cyclopts` for CLI command parsing, `rich` for terminal rendering/formatting, `textual` for full TUI framework, `prompt_toolkit` for interactive input / REPL / shell behavior

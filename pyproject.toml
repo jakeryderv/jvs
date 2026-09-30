@@ -5,10 +5,12 @@ description = "Placeholder release reserving the jvs package name."
 readme = "README.md"
 requires-python = ">=3.9"
 authors = [{ name = "Jake Van Slyke", email = "jakervanslyke@gmail.com" }]
-dependencies = []
+dependencies = [
+    "cyclopts>=3.24.0",
+]
 
 [project.scripts]
-jvs = "jvs.cli:main"
+jvs = "jvs._cli.app:main"
 
 [build-system]
 requires = ["uv_build>=0.12.5,<0.13.0"]

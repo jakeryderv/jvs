@@ -21,3 +21,10 @@ Overall, just a personal medium to do things how I want without imposing anyone 
 | subpackage name | philosphy |
 | :--- | :---: |
 | `mathviz` | The visualization is a view of mathematical state, not the owner of that state. |
+
+
+## tech stack
+
+#### cli & tui
+
+`cyclopts` for CLI command parsing, `rich` for terminal rendering/formatting, `textual` for full TUI framework, optional `prompt_toolkit` later for interactive input / REPL / shell behavior

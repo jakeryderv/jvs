@@ -4,6 +4,27 @@
 
 Overall, just a personal medium to do things how I want without imposing anyone else's rules or conventions. No clear purpose or rationale at the root package level beyond just shared foundational stuff . However, this is intended to be heterogeneous, meaning the subpackages retain an orthogonal purpose and rationale.
 
+
+## install
+
+> [uv](https://docs/astral.sh/uv) recommended
+
+install in your python [venv](https://docs.astral.sh/uv/pip/environments/)
+
+```bash
+uv pip install jvs
+```
+
+or in your [project](https://docs.astral.sh/uv/concepts/projects/)
+
+```bash
+uv add jvs
+```
+
+## development
+
+see [development](./docs/development.md)
+
 ## structure
 
 `src/jvs/` -> Root package: Modular package/subpackage structure. Root just contains shared foundational stuff (types, errors, configs, interfaces, etc).

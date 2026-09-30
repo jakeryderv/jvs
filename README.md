@@ -12,7 +12,7 @@ Overall, just a personal medium to do things how I want without imposing anyone 
 
 `tests/` -> tests for stuff in `jvs`
 
-`justfile` & `tools/` -> helper tooling to streamline repo management type of stuff; static/dynamic code analysis stuff, tests, etc.
+`justfile` (break into scripts when justifiable) -> helper tooling to streamline repo management type of stuff; static/dynamic code analysis stuff, tests, etc.
 
 `docs/` -> notes and documentation
 

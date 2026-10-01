@@ -17,6 +17,7 @@ jvs = "jvs._cli.app:main"
 
 [dependency-groups]
 dev = [
+  "pre-commit>=4.6.2",
   "pytest>=9.1.1",
   "ruff>=0.16.9",
   "ty>=0.0.84",
@@ -25,6 +26,9 @@ dev = [
 [build-system]
 requires = ["uv_build>=0.12.5,<0.13.0"]
 build-backend = "uv_build"
+
+[tool.pytest]
+testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 88

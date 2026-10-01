@@ -26,18 +26,24 @@ requires = ["uv_build>=0.12.5,<0.13.0"]
 build-backend = "uv_build"
 
 [tool.ruff]
+line-length = 88
+
 [tool.ruff.lint]
 select = [
-  # pycodestyle
-  "E",
-  # Pyflakes
-  "F",
-  # pyupgrade
-  "UP",
-  # flake8-bugbear
-  "B",
-  # flake8-simplify
-  "SIM",
-  # isort
-  "I",
+  "E",  # Style errors
+  "F",  # Undefined names, unused imports, etc.
+  "I",  # Import sorting
+  "UP",  # Modern Python idioms
+  "B",  # Likely bugs
+  "SIM",  # Simplification suggestions
+  "RUF",  # Ruff-specific checks
 ]
+ignore = [
+  "E501",  # Let the formatter handle line wrapping
+]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.ty.environment]
+python-platform = "all"

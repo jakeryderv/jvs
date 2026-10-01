@@ -1,9 +1,13 @@
 # development tooling for `jvs`
 
-#### python package/project
-
-[uv](https://docs.astral.sh/uv): installations/versions, virtual environments, dependencies, projects, and command execution
-
-[ruff](https://docs.astral.sh/ruff): lint & format
-
-[ty](https://docs.astral.sh/ty): type check
+| Concern | Tool | Role |
+|---|---|---|
+| Python/version management | **uv** | Python installs, `.venv`, dependencies, lockfile |
+| Packaging | **uv** | build + publish |
+| Formatting | **Ruff** | formatter |
+| Linting | **Ruff** | lint rules, imports, common bugs |
+| Type checking | **ty** | static typing |
+| Editor diagnostics | **ty LSP** | type-aware IDE feedback |
+| Testing | **pytest** | unit/integration tests |
+| Coverage | **coverage.py** | measure what tests exercise |
+| CI | **GitHub Actions** | run everything across pushes/PRs |

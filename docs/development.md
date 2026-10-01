@@ -24,3 +24,74 @@
 **Good additions:** `coverage.py + Hypothesis + GitHub Actions`
 
 Everything else is more situational.
+
+## Releases
+
+Use `utils/release.sh` from inside the repository with `git`, `uv`, `gh`, and
+`tar` installed. Authenticate with `gh auth login` first. Local `main` must match
+`origin/main`, and all changes, including untracked files, must be committed or
+stashed before running the script.
+
+Preview a patch release:
+
+```bash
+bash utils/release.sh --dry-run patch
+```
+
+Release after reviewing the checks and confirming the prompt:
+
+```bash
+bash utils/release.sh patch
+```
+
+Use `minor` or `major` instead of `patch` for those version bumps. Omitting the
+bump prompts for it; `--help` shows usage.
+
+The script checks the lockfile and runs `uv sync --locked` to prepare the
+development environment. It then runs Ruff linting, formatting checks, and ty
+type checking, and builds the proposed version in a temporary copy of the
+committed source. Both this candidate build and the publishing workflow use
+`uv build --no-sources`. Tests are not currently part of the release checks.
+
+A dry run may create or update `.venv`, download dependencies or Python, and
+update caches. It does not change source files, the lockfile, Git refs, or
+releases. Temporary build files are removed when the script exits.
+
+After confirmation, the script rechecks the branch, checked commit, working
+tree, remote main, and tag availability. It updates the version and lockfile,
+commits them, pushes the release commit to `origin/main`, and creates a GitHub
+release. `.github/workflows/publish.yml` publishes that release to PyPI using
+the configured `pypi` environment and trusted publisher.
+
+The script polls for roughly a minute for the release-triggered workflow for that
+exact commit to appear, then watches it to completion. A failed, cancelled,
+skipped, or missing run exits unsuccessfully. A workflow waiting for environment
+approval remains pending until it is approved or cancelled. Success means the
+publishing workflow completed successfully; it is not a separate check of PyPI
+index availability.
+
+Workflow tracking uses [`gh run list`](https://cli.github.com/manual/gh_run_list)
+to find the matching release commit and
+[`gh run watch --exit-status`](https://cli.github.com/manual/gh_run_watch)
+to monitor its result.
+
+### Recovering an interrupted release
+
+If the script fails or is interrupted after version changes begin, it prints
+the version, tag, release commit when known, last confirmed steps, and commands
+to inspect or finish the release. It leaves completed changes in place.
+
+Do not immediately rerun the script: that would propose another version bump.
+Inspect local and remote state first, because a push or release request may
+have succeeded even if the command reported an error.
+
+- If the version changed but no release commit exists, inspect the changes,
+  finish the intended version and lockfile, and commit those two files.
+- If the release commit exists but was not pushed, push that same commit.
+- If the GitHub release is missing, create it for the existing release commit.
+- If the release exists, inspect its publishing workflow and resume watching
+  it. Resolve any workflow failure before deciding whether to rerun failed
+  jobs; check for artifacts already published to PyPI first.
+
+The script prints commands with the actual tag, commit, and workflow run ID
+where available. It does not automatically roll back changes or retry publishing.

@@ -3,7 +3,7 @@ name = "jvs"
 version = "0.0.1"
 description = "Placeholder release reserving the jvs package name."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12,<3.15"
 authors = [{ name = "Jake Van Slyke", email = "jakervanslyke@gmail.com" }]
 dependencies = [
   "cyclopts>=3.24.0",

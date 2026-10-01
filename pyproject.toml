@@ -30,6 +30,9 @@ build-backend = "uv_build"
 [tool.pytest]
 testpaths = ["tests"]
 
+[tool.pytest.ini_options]
+addopts = "-ra"
+
 [tool.ruff]
 line-length = 88
 

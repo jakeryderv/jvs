@@ -33,7 +33,7 @@ see [development](./docs/development.md)
 
 `tests/` -> tests for stuff in `jvs`
 
-`justfile` (break into scripts when justifiable) -> helper tooling to streamline repo management type of stuff; static/dynamic code analysis stuff, tests, etc.
+`justfile` & scripts in `utils/` -> helper tooling to streamline repo management type of stuff; static/dynamic code analysis stuff, tests, etc.
 
 `docs/` -> notes and documentation
 

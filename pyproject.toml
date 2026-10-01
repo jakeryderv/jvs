@@ -28,10 +28,8 @@ requires = ["uv_build>=0.12.5,<0.13.0"]
 build-backend = "uv_build"
 
 [tool.pytest]
+addopts = ["-ra"]
 testpaths = ["tests"]
-
-[tool.pytest.ini_options]
-addopts = "-ra"
 
 [tool.ruff]
 line-length = 88

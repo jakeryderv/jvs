@@ -3,6 +3,12 @@ set -euo pipefail
 
 bump=""
 dry_run=false
+verbose=false
+terminal_output=false
+pending_line=false
+color_pass=""
+color_fail=""
+color_reset=""
 work_dir=""
 version=""
 tag=""
@@ -15,13 +21,46 @@ publish_run=""
 last_step=""
 
 usage() {
-    printf 'Usage: %s [--dry-run] [major|minor|patch]\n' "$0"
+    printf 'Usage: %s [--dry-run] [--verbose|-v] [major|minor|patch]\n' "$0"
     printf 'Dry run executes checks and a temporary candidate build, but does not release.\n'
     printf 'Checks run uv sync --locked; this may update .venv and download dependencies.\n'
+    printf 'Verbose mode shows captured output after each check; failures always show output.\n'
+    printf 'Colors are enabled in terminals unless NO_COLOR is set.\n'
+}
+
+configure_output() {
+    if [[ -t 1 && "${TERM:-dumb}" != "dumb" ]]; then
+        terminal_output=true
+        if [[ -z "${NO_COLOR+x}" ]]; then
+            color_pass=$'\033[32m'
+            color_fail=$'\033[31m'
+            color_reset=$'\033[0m'
+        fi
+    fi
+}
+
+result_line() {
+    local marker="$1" label="$2" color="$color_pass" reset="$color_reset"
+    if [[ "$marker" == "FAIL" ]]; then
+        color="$color_fail"
+    fi
+    if [[ ! -t 1 ]]; then
+        color=""
+        reset=""
+    fi
+    printf '%s[%s]%s %s\n' "$color" "$marker" "$reset" "$label"
+}
+
+clear_pending_line() {
+    if "$pending_line"; then
+        printf '\r\033[2K'
+        pending_line=false
+    fi
 }
 
 die() {
-    printf '[FAIL] %s\n' "$*" >&2
+    clear_pending_line
+    result_line FAIL "$*" >&2
     exit 1
 }
 
@@ -74,6 +113,7 @@ report_recovery() {
 
 cleanup() {
     local status=$?
+    clear_pending_line
     if (( status != 0 )) && "$release_started"; then
         report_recovery
     fi
@@ -86,6 +126,7 @@ parse_arguments() {
     for argument in "$@"; do
         case "$argument" in
         --dry-run) dry_run=true ;;
+        --verbose | -v) verbose=true ;;
         -h | --help) usage; exit 0 ;;
         major | minor | patch)
             [[ -z "$bump" ]] || die "Specify only one version bump."
@@ -104,17 +145,28 @@ parse_arguments() {
     esac
 }
 
-# Capture command output; show details only when a step fails.
+# Keep one result line per step; show captured output on failure or with --verbose.
 step() {
-    local label="$1"
+    local label="$1" status=0
     shift
     last_step="$label"
-    printf '[RUN ] %s\n' "$label"
+    if "$terminal_output"; then
+        pending_line=true
+        printf '[....] %s' "$label"
+    fi
     if "$@" >"$work_dir/step.log" 2>&1; then
-        printf '[PASS] %s\n' "$label"
+        status=0
     else
-        local status=$?
-        printf '[FAIL] %s (exit %s)\n' "$label" "$status" >&2
+        status=$?
+    fi
+    clear_pending_line
+    if (( status == 0 )); then
+        result_line PASS "$label"
+        if "$verbose"; then
+            cat "$work_dir/step.log"
+        fi
+    else
+        result_line FAIL "$label (exit $status)" >&2
         cat "$work_dir/step.log" >&2
         exit "$status"
     fi
@@ -287,6 +339,7 @@ publish_release() {
 
 main() {
     local root
+    configure_output
     parse_arguments "$@"
     check_tools
     root="$(git rev-parse --show-toplevel)" || die "Run this inside the repository."
@@ -299,8 +352,9 @@ main() {
     printf '\nRelease checks%s\n\n' "$(if "$dry_run"; then printf ' (dry run)'; fi)"
     run_checks
     if "$dry_run"; then
-        printf '\nDry run passed for %s. No source files, lockfile, Git refs, or releases changed.\n' "$tag"
-        printf 'The development environment was synced; .venv and dependency caches may have changed.\n'
+        printf '\nDry run passed: %s\n' "$tag"
+        printf 'Source files, lockfile, Git refs, and releases unchanged.\n'
+        printf 'Environment synced (.venv and caches may have changed).\n'
     else
         publish_release
     fi

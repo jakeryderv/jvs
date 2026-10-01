@@ -47,6 +47,20 @@ bash utils/release.sh patch
 Use `minor` or `major` instead of `patch` for those version bumps. Omitting the
 bump prompts for it; `--help` shows usage.
 
+Each check prints one result line, with a green `[PASS]` or red `[FAIL]` marker
+in supported terminals. The running check appears on the same line until its
+result replaces it. Redirected output uses plain text without terminal control
+sequences; set `NO_COLOR=1` to disable colors in a terminal.
+
+Add `--verbose` (or `-v`) to show captured output after every check:
+
+```bash
+bash utils/release.sh --dry-run --verbose patch
+```
+
+Failed checks always show their output, including without `--verbose`. The
+publishing workflow is watched live in both modes.
+
 The script checks the lockfile and runs `uv sync --locked` to prepare the
 development environment. It then runs Ruff linting, formatting checks, and ty
 type checking, and builds the proposed version in a temporary copy of the

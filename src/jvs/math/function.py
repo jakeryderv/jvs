@@ -6,27 +6,39 @@ from jvs.math.core import Expression, Set, Variable, _to_sympy, _wrap_sympy
 
 
 class Function:
-    """A scalar expression with distinct arguments and declared sets.
+    """A scalar expression with distinct arguments and descriptive sets.
 
     Multivariable domains contain argument tuples, typically constructed with
-    Set.product(). Concrete inputs and outputs must have definite membership
-    in their declared sets; violations or unresolved membership raise ValueError.
-    Symbolic inputs or outputs defer the corresponding membership check.
+    Set.product(). None means the domain or codomain is unspecified. Declared
+    sets express an intended mathematical contract, not a proof of validity.
+    Evaluation validates argument structure; membership can be checked explicitly
+    using Set.contains().
     """
 
     def __init__(
         self,
         expression: Expression,
         variables: tuple[Variable, ...],
-        domain: Set,
-        codomain: Set,
+        domain: Set | None = None,
+        codomain: Set | None = None,
     ) -> None:
-        allowed_symbols = {variable._as_sympy() for variable in variables}
+        if not isinstance(expression, Expression):
+            raise TypeError("Function expression must be an Expression")
+        if not isinstance(variables, tuple) or not all(
+            isinstance(variable, Variable) for variable in variables
+        ):
+            raise TypeError("Function variables must be a tuple of Variables")
+        if domain is not None and not isinstance(domain, Set):
+            raise TypeError("Function domain must be a Set or None")
+        if codomain is not None and not isinstance(codomain, Set):
+            raise TypeError("Function codomain must be a Set or None")
+
+        allowed_symbols = {variable.to_sympy() for variable in variables}
 
         if len(allowed_symbols) != len(variables):
             raise ValueError("Function variables must have distinct symbols")
 
-        unknown_symbols = expression._as_sympy().free_symbols - allowed_symbols
+        unknown_symbols = expression.to_sympy().free_symbols - allowed_symbols
 
         if unknown_symbols:
             raise ValueError(
@@ -47,15 +59,15 @@ class Function:
         return self._variables
 
     @property
-    def domain(self) -> Set:
+    def domain(self) -> Set | None:
         return self._domain
 
     @property
-    def codomain(self) -> Set:
+    def codomain(self) -> Set | None:
         return self._codomain
 
     def __call__(self, *values: object) -> Expression:
-        """Evaluate with simultaneous substitution and check concrete membership."""
+        """Evaluate with simultaneous substitution and descriptive set metadata."""
         if len(values) != len(self._variables):
             raise ValueError(
                 f"Expected {len(self._variables)} arguments, got {len(values)}"
@@ -63,12 +75,8 @@ class Function:
 
         arguments = tuple(_to_sympy(value) for value in values)
 
-        if not any(argument.free_symbols for argument in arguments):
-            input_value = arguments[0] if len(arguments) == 1 else sp.Tuple(*arguments)
-            _require_membership(input_value, self._domain, "Input")
-
         substitutions = {
-            variable._as_sympy(): argument
+            variable.to_sympy(): argument
             for variable, argument in zip(
                 self._variables,
                 arguments,
@@ -76,14 +84,21 @@ class Function:
             )
         }
 
-        result = self._expression._as_sympy().subs(
+        result = self._expression.to_sympy().subs(
             substitutions.items(), simultaneous=True
         )
 
-        if not result.free_symbols:
-            _require_membership(result, self._codomain, "Result")
-
         return _wrap_sympy(result)
+
+    def to_sympy(self) -> sp.Basic:
+        """Return a SymPy Lambda; declared sets remain metadata on this object.
+
+        Subclasses may return a more specific mathematical representation.
+        """
+        return sp.Lambda(
+            tuple(variable.to_sympy() for variable in self._variables),
+            self._expression.to_sympy(),
+        )
 
     def __str__(self) -> str:
         return str(self.expression)
@@ -96,16 +111,4 @@ class Function:
             f"domain={self.domain!r}, "
             f"codomain={self.codomain!r}"
             f")"
-        )
-
-
-def _require_membership(value: object, allowed_set: Set, label: str) -> None:
-    membership = allowed_set.contains(value)
-
-    if membership is False:
-        raise ValueError(f"{label} {value} is outside the declared set {allowed_set}")
-    if membership is None:
-        raise ValueError(
-            f"Cannot determine whether {label.lower()} {value} "
-            f"belongs to the declared set {allowed_set}"
         )

@@ -27,28 +27,26 @@ def derivative(
     domain: Set | None = None,
     codomain: Set | None = None,
 ) -> Function:
-    """Differentiate with explicitly declared derivative sets.
+    """Differentiate while preserving known structure and descriptive sets.
 
-    Polynomial derivatives default to polynomials over the reals. Other
-    functions require both domain and codomain. Supplying both sets for a
-    polynomial returns a general Function with those sets instead.
-    The caller is responsible for choosing a domain of differentiability.
+    Polynomial derivatives remain polynomials with real default sets. General
+    derivatives leave their domain and codomain unspecified. Either set may be
+    supplied explicitly; the caller chooses a domain of differentiability.
     """
     variable = _resolve_variable(function, variable)
 
-    if isinstance(function, Polynomial) and domain is None and codomain is None:
+    result = _wrap_sympy(sp.diff(function.expression.to_sympy(), variable.to_sympy()))
+
+    if isinstance(function, Polynomial):
         return Polynomial(
-            Expression(sp.diff(function.expression._as_sympy(), variable._as_sympy())),
+            result,
             function.variable,
+            domain=domain,
+            codomain=codomain,
         )
 
-    if domain is None or codomain is None:
-        raise ValueError("Derivative domain and codomain must both be supplied")
-
     return Function(
-        expression=Expression(
-            sp.diff(function.expression._as_sympy(), variable._as_sympy())
-        ),
+        expression=result,
         variables=function.variables,
         domain=domain,
         codomain=codomain,
@@ -78,8 +76,8 @@ def limit(
 
     try:
         result = sp.limit(
-            function.expression._as_sympy(),
-            variable._as_sympy(),
+            function.expression.to_sympy(),
+            variable.to_sympy(),
             approach_point,
             dir=direction,
         )
@@ -107,7 +105,10 @@ def real_roots(
     ValueError because every real number is a root. Unsupported exact root
     computations raise NotImplementedError.
     """
-    poly = polynomial._as_sympy_poly()
+    if not isinstance(polynomial, Polynomial):
+        raise TypeError("polynomial must be a Polynomial")
+
+    poly = polynomial.to_sympy()
 
     if poly.is_zero:
         raise ValueError("The zero polynomial has infinitely many real roots")
@@ -138,16 +139,19 @@ def _resolve_variable(
     function: Function,
     variable: Variable | None,
 ) -> Variable:
+    if not isinstance(function, Function):
+        raise TypeError("function must be a Function")
+
     if variable is None:
         if len(function.variables) != 1:
             raise ValueError("variable is required for multivariable functions")
 
         return function.variables[0]
 
-    if not any(
-        variable._as_sympy() == candidate._as_sympy()
-        for candidate in function.variables
-    ):
+    if not isinstance(variable, Variable):
+        raise TypeError("variable must be a Variable or None")
+
+    if variable not in function.variables:
         raise ValueError("variable does not belong to this function")
 
     return variable

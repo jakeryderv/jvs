@@ -16,21 +16,27 @@ from .function import Function
 
 
 class Polynomial(Function):
-    """A univariate polynomial with real coefficients, domain, and codomain.
+    """A univariate polynomial with real coefficients and descriptive sets.
 
-    Concrete calls enforce membership in the reals; symbolic calls defer it.
+    Domain and codomain default to the reals and can be overridden as metadata.
     The zero polynomial is valid and has degree negative infinity.
     """
 
     def __init__(
         self,
-        expression: Expression | int | float | complex,
+        expression: Expression | int | float | complex | sp.Expr,
         variable: Variable,
+        *,
+        domain: Set | None = None,
+        codomain: Set | None = None,
     ) -> None:
+        if not isinstance(variable, Variable):
+            raise TypeError("Polynomial variable must be a Variable")
+
         try:
             poly = sp.Poly(
                 _to_sympy(expression),
-                variable._as_sympy(),
+                variable.to_sympy(),
             )
         except PolynomialError as exc:
             raise ValueError(
@@ -44,10 +50,10 @@ class Polynomial(Function):
         self._variable = variable
 
         super().__init__(
-            expression=Expression(poly.as_expr()),
+            expression=_wrap_sympy(poly.as_expr()),
             variables=(variable,),
-            domain=Set.reals(),
-            codomain=Set.reals(),
+            domain=Set.reals() if domain is None else domain,
+            codomain=Set.reals() if codomain is None else codomain,
         )
 
     @property
@@ -60,7 +66,7 @@ class Polynomial(Function):
 
     @property
     def terms(self) -> tuple[Expression, ...]:
-        symbol = self._variable._as_sympy()
+        symbol = self._variable.to_sympy()
 
         return tuple(
             _wrap_sympy(coefficient * symbol ** monomial[0])
@@ -75,8 +81,16 @@ class Polynomial(Function):
     def leading_coefficient(self) -> Scalar:
         return Scalar(self._poly.LC())
 
-    def _as_sympy_poly(self) -> sp.Poly:
+    def to_sympy(self) -> sp.Poly:
+        """Return the underlying SymPy polynomial, preserving its generator."""
         return self._poly
 
     def __repr__(self) -> str:
-        return f"Polynomial(expression={self.expression!r}, variable={self.variable!r})"
+        return (
+            f"Polynomial("
+            f"expression={self.expression!r}, "
+            f"variable={self.variable!r}, "
+            f"domain={self.domain!r}, "
+            f"codomain={self.codomain!r}"
+            f")"
+        )

@@ -41,7 +41,7 @@ see [development](./docs/development.md)
 
 | subpackage name | philosphy |
 | :--- | :---: |
-| `mathviz` | The visualization is a view of mathematical state, not the owner of that state. |
+| `math` | The visualization is a view of mathematical state, not the owner of that state. |
 
 
 ## tech stack

@@ -6,7 +6,6 @@ Documentation and tests mirror the directories beneath `src/jvs/`:
 
 | Implementation | Documentation | Tests |
 | --- | --- | --- |
-| `src/jvs/math/` | `docs/math/README.md` | `tests/math/` |
 | `src/jvs/_cli/` | Add when useful | `tests/_cli/` |
 
 Use `docs/<subpackage>/README.md` as the documentation entry point. Add further
@@ -31,14 +30,6 @@ uv run pytest
 uv run ruff check .
 uv run ruff format --check .
 uv run ty check
-```
-
-For work on the math subpackage, tests and Ruff can be scoped to its directories:
-
-```bash
-uv run pytest tests/math
-uv run ruff check src/jvs/math tests/math
-uv run ruff format --check src/jvs/math tests/math
 ```
 
 Keep `uv run ty check` project-wide so it also checks consumers of changed code.

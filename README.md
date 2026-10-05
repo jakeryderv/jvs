@@ -28,13 +28,7 @@ uv add jvs
 | `scripts/` and `notebooks/` | Experiments and examples |
 | `utils/` | Repository maintenance tooling |
 
-Package documentation and tests mirror subpackage directories: `src/jvs/math/` corresponds to `docs/math/` and `tests/math/`. Each documented subpackage uses a `README.md` as its entry point; individual documents and tests follow their subjects.
-
-## Subpackages
-
-| Subpackage | Philosophy |
-| --- | --- |
-| [math](docs/math/README.md) | Model the mathematics first; treat the libraries underneath as backends. |
+Package documentation and tests mirror subpackage directories: `src/jvs/_cli/` corresponds to `tests/_cli/`, with documentation added under `docs/_cli/` when useful. Each documented subpackage uses a `README.md` as its entry point; individual documents and tests follow their subjects.
 
 ## Development
 

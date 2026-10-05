@@ -16,7 +16,6 @@ dependencies = [
   "prompt-toolkit>=3.0.52",
   "rich>=15.0.0",
   "seaborn>=0.13.2",
-  "sympy>=1.14.0",
   "textual>=8.2.8",
 ]
 

@@ -36,7 +36,7 @@ requires = ["uv_build>=0.12.5,<0.13.0"]
 build-backend = "uv_build"
 
 [tool.pytest]
-addopts = ["-ra"]
+addopts = ["-ra", "--import-mode=importlib"]
 testpaths = ["tests"]
 
 [tool.ruff]

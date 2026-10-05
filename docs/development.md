@@ -1,4 +1,59 @@
-# development tooling for `jvs`
+# Development
+
+## Directory conventions
+
+Documentation and tests mirror the directories beneath `src/jvs/`:
+
+| Implementation | Documentation | Tests |
+| --- | --- | --- |
+| `src/jvs/math/` | `docs/math/README.md` | `tests/math/` |
+| `src/jvs/_cli/` | Add when useful | `tests/_cli/` |
+
+Use `docs/<subpackage>/README.md` as the documentation entry point. Add further
+documents by subject and tests as `test_<subject>.py`; a source module can have
+several focused test files. Create documentation and test directories when they
+have content. Repository guidance stays directly in `docs/`, and exploratory
+notes stay in `docs/notes/`.
+
+Pytest searches recursively beneath `tests/`. The configured `importlib` mode
+allows repeated test filenames in different subpackages without adding
+`__init__.py` files to test directories. Tests import the installed `jvs` package
+using absolute imports. Keep fixtures local to the subpackage that needs them;
+use a shared `tests/conftest.py` when fixtures are needed across subpackages.
+
+## Setup and checks
+
+Run from the repository root:
+
+```bash
+uv sync --locked
+uv run pytest
+uv run ruff check .
+uv run ruff format --check .
+uv run ty check
+```
+
+For work on the math subpackage, tests and Ruff can be scoped to its directories:
+
+```bash
+uv run pytest tests/math
+uv run ruff check src/jvs/math tests/math
+uv run ruff format --check src/jvs/math tests/math
+```
+
+Keep `uv run ty check` project-wide so it also checks consumers of changed code.
+
+## CLI and terminal libraries
+
+- `cyclopts`: CLI command parsing.
+- `rich`: Terminal rendering and formatting.
+- `textual`: TUI framework.
+- `prompt_toolkit`: Interactive prompts and REPL behavior.
+
+## Tooling reference
+
+The core development stack is uv, Ruff, ty, and pytest. The table also includes
+optional tools to consider as the project grows.
 
 | Tool | Description | Covers |
 |---|---|---|

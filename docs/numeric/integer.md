@@ -92,12 +92,41 @@ assert quotient.dtype == ExactDType.rational()
 assert (x / y).to_integer(int16) == 4
 ```
 
+### Integer Quotient and Remainder
+
+Floor division (`//`), remainder (`%`), and `divmod(a, b)` require matching
+integer dtypes. Each returned value is an `IntegerValue` with that dtype.
+For nonzero `b`, the quotient is `floor(a / b)` and the remainder satisfies
+`a = q*b + r`, with `abs(r) < abs(b)` and a nonzero remainder having the divisor's
+sign. Negative quotients therefore round toward negative infinity, not zero.
+
+All computation uses exact integer intermediates. Each requested result is
+range-checked before storage; division by zero raises `ZeroDivisionError`.
+For signed fixed-width minimum divided by `-1`, `//` raises `OverflowError`,
+while `%` succeeds with zero because its own result fits. `divmod` requires both
+results to fit and raises without returning a partial pair. Exact unbounded
+integers have no quotient range limit. Inputs remain unchanged on failure.
+
+The identity above is mathematical: recomputing `q*b + r` using fixed-width
+wrapper operations can itself overflow at `q*b`, even if the final value fits.
+Use `int(q) * int(b) + int(r)` or an unbounded representation to check it.
+
+```python
+a = IntegerValue(-7, dtype=int16)
+b = IntegerValue(3, dtype=int16)
+q, r = divmod(a, b)
+assert q == -3 and r == 2
+assert q == a // b and r == a % b
+assert q.dtype == r.dtype == int16
+assert int(a) == int(q) * int(b) + int(r)
+```
+
 Mixed dtypes and raw scalar arithmetic raise `TypeError`. Convert explicitly with
 `.to(dtype)` before combining representations. Conversion applies the same input
 and target checks as construction; it cannot turn an integer wrapper into a
-floating or rational representation. Floor division (`//`), modulo, powers,
-and mixed-type promotion are outside this initial API. NumPy division
-ufuncs remain unsupported; use `/` for the checked exact operation.
+floating or rational representation. Powers and mixed-type promotion are outside
+this initial API. NumPy arithmetic ufuncs, including `floor_divide`, `remainder`,
+`fmod`, and `divmod`, remain unsupported; use the wrapper operators instead.
 
 ## Equality and Hashing
 

@@ -341,6 +341,12 @@ settings must be scoped to the operation without persistent global changes.
   `ExactDType.rational()`, including integral results, without floating conversion
   or fixed-width overflow. Zero divisors raise `ZeroDivisionError`. Exact integer
   intermediates may be used to detect overflow in integer-valued operations.
+  Matching-dtype `//`, `%`, and `divmod` return integer wrappers: the quotient
+  floors toward negative infinity and a nonzero remainder has the divisor's sign.
+  Check each requested result before storage. In particular, signed minimum
+  divided by `-1` overflows the quotient, but its remainder is valid zero;
+  `divmod` requires both results to fit. See
+  [integer quotient and remainder](integer.md#integer-quotient-and-remainder).
 - **Exact rationals:** `RationalValue` requires `ExactDType.rational()` and exact
   integer numerator/denominator inputs. Reject zero denominators and implicit
   float conversions; reduce fractions and normalize signs with SymPy. Arithmetic

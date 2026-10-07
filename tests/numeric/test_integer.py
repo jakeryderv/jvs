@@ -6,6 +6,8 @@ import warnings
 from dataclasses import FrozenInstanceError
 from decimal import Decimal
 from fractions import Fraction
+from itertools import product
+from math import floor
 from typing import Any
 
 import numpy as np
@@ -189,7 +191,16 @@ def test_unbounded_exact_arithmetic() -> None:
 
 
 @pytest.mark.parametrize(
-    "operation", [operator.add, operator.sub, operator.mul, operator.truediv]
+    "operation",
+    [
+        operator.add,
+        operator.sub,
+        operator.mul,
+        operator.truediv,
+        operator.floordiv,
+        operator.mod,
+        divmod,
+    ],
 )
 @pytest.mark.parametrize(
     "other",
@@ -294,12 +305,10 @@ def test_integer_protocols_and_immutability() -> None:
             setattr(value, attribute, replacement)
 
 
-def test_unsupported_ufuncs_and_floor_division_fail() -> None:
+def test_unsupported_ufuncs_and_raw_division_fail() -> None:
     value: Any = IntegerValue(3, dtype=EXACT)
     with pytest.raises(TypeError, match="ufunc"):
         np.add(value, value)
-    with pytest.raises(TypeError):
-        operator.floordiv(value, value)
     with pytest.raises(TypeError, match="ufunc"):
         np.divide(value, value)
     with pytest.raises(TypeError):
@@ -383,3 +392,155 @@ def test_numpy_zero_dimensional_equality_transport() -> None:
             _ = other == value
         with pytest.raises(TypeError):
             _ = value == other
+
+
+@pytest.mark.parametrize("dtype", [*DTYPES, EXACT])
+def test_integer_quotient_remainder_boundary_grid(dtype: Any) -> None:
+    if isinstance(dtype, NumPyDType):
+        lo, hi = int(dtype.integer_info.min), int(dtype.integer_info.max)
+    else:
+        lo, hi = -(10**1000), 10**1000
+    candidates = {lo, lo + 1, -3, -2, -1, 0, 1, 2, 3, hi - 1, hi}
+    values = sorted(n for n in candidates if lo <= n <= hi)
+    for a, b in product(values, repeat=2):
+        if b == 0:
+            continue
+        left = IntegerValue(a, dtype=dtype)
+        right = IntegerValue(b, dtype=dtype)
+        # Define the oracle from the exact ratio and division identity, rather
+        # than repeating the implementation's //, %, or divmod calls.
+        expected_q = floor(Fraction(a, b))
+        expected_r = a - expected_q * b
+        remainder = left % right
+        assert isinstance(remainder, IntegerValue)
+        assert int(remainder) == expected_r
+        assert remainder.dtype == dtype
+        assert abs(int(remainder)) < abs(b)
+        assert not remainder or (int(remainder) > 0) == (b > 0)
+        assert right.__rmod__(left) == remainder
+        if isinstance(dtype, NumPyDType) and not lo <= expected_q <= hi:
+            for operation in (operator.floordiv, divmod):
+                with pytest.raises(OverflowError):
+                    operation(left, right)
+        else:
+            quotient = left // right
+            pair = divmod(left, right)
+            assert isinstance(quotient, IntegerValue)
+            assert int(quotient) == expected_q
+            assert quotient.dtype == dtype
+            assert pair == (quotient, remainder)
+            assert all(
+                isinstance(result, IntegerValue) and result.dtype == dtype
+                for result in pair
+            )
+            assert right.__rfloordiv__(left) == quotient
+            assert right.__rdivmod__(left) == pair
+            assert a == int(quotient) * b + int(remainder)
+            assert Fraction(expected_q) <= Fraction(a, b) < expected_q + 1
+        assert int(left) == a and int(right) == b
+
+
+@pytest.mark.parametrize(
+    ("a", "b", "q", "r"),
+    [
+        (7, 3, 2, 1),
+        (-7, 3, -3, 2),
+        (7, -3, -3, -2),
+        (-7, -3, 2, -1),
+        (-6, 3, -2, 0),
+        (6, -3, -2, 0),
+        (1, -3, -1, -2),
+        (-1, 3, -1, 2),
+        (0, -3, 0, 0),
+    ],
+)
+def test_integer_quotient_floors_and_remainder_follows_divisor(
+    a: int, b: int, q: int, r: int
+) -> None:
+    dtype = NumPyDType("int8")
+    left, right = IntegerValue(a, dtype=dtype), IntegerValue(b, dtype=dtype)
+    assert left // right == q
+    assert left % right == r
+    assert divmod(left, right) == (q, r)
+
+
+@pytest.mark.parametrize("dtype", [*DTYPES, EXACT])
+@pytest.mark.parametrize("a", [0, 1])
+@pytest.mark.parametrize("operation", [operator.floordiv, operator.mod, divmod])
+def test_integer_quotient_and_remainder_zero_division(
+    dtype: Any, a: int, operation: Any
+) -> None:
+    value = IntegerValue(a, dtype=dtype)
+    zero = IntegerValue(0, dtype=dtype)
+    with warnings.catch_warnings(), np.errstate(all="raise"):
+        warnings.simplefilter("error")
+        with pytest.raises(ZeroDivisionError):
+            operation(value, zero)
+    assert value == a and zero == 0
+
+
+@pytest.mark.parametrize("bits", [8, 16, 32, 64])
+def test_minimum_signed_quotient_overflow_does_not_invalidate_remainder(
+    bits: int,
+) -> None:
+    dtype = NumPyDType(f"int{bits}")
+    minimum = -(2 ** (bits - 1))
+    left = IntegerValue(minimum, dtype=dtype)
+    right = IntegerValue(-1, dtype=dtype)
+    with warnings.catch_warnings(), np.errstate(all="raise"):
+        warnings.simplefilter("error")
+        assert left % right == 0
+        assert right.__rmod__(left) == 0
+        for operation in (operator.floordiv, divmod):
+            with pytest.raises(OverflowError):
+                operation(left, right)
+        for operation in (right.__rfloordiv__, right.__rdivmod__):
+            with pytest.raises(OverflowError):
+                operation(left)
+    assert left == minimum and right == -1
+    q, r = divmod(left.to(EXACT), right.to(EXACT))
+    assert q == -minimum and r == 0
+
+
+def test_reconstruction_can_require_wider_intermediates_than_the_result() -> None:
+    dtype = NumPyDType("int8")
+    a, b = IntegerValue(-128, dtype=dtype), IntegerValue(127, dtype=dtype)
+    q, r = divmod(a, b)
+    assert q == -2 and r == 126
+    assert int(q) * int(b) + int(r) == int(a)
+    with pytest.raises(OverflowError):
+        operator.mul(q, b)
+
+
+@pytest.mark.parametrize(("sign_a", "sign_b"), [(1, 1), (-1, 1), (1, -1), (-1, -1)])
+def test_arbitrary_size_quotients_are_exact_without_float_intermediates(
+    sign_a: int, sign_b: int
+) -> None:
+    a = sign_a * (10**5000 + 17)
+    b = sign_b * (10**2000 + 3)
+    left, right = IntegerValue(a, dtype=EXACT), IntegerValue(b, dtype=EXACT)
+    q, r = divmod(left, right)
+    assert isinstance(q.value, sp.Integer) and isinstance(r.value, sp.Integer)
+    assert q.dtype == r.dtype == EXACT
+    assert int(q) == floor(Fraction(a, b))
+    assert a == int(q) * b + int(r)
+    assert abs(int(r)) < abs(b)
+    assert not r or (int(r) > 0) == (b > 0)
+    assert left // right == q and left % right == r
+
+
+@pytest.mark.parametrize(
+    "ufunc", [np.floor_divide, np.remainder, np.mod, np.fmod, np.divmod]
+)
+def test_numpy_quotient_remainder_ufuncs_cannot_bypass_checks(ufunc: Any) -> None:
+    value = IntegerValue(7, dtype=NumPyDType("int8"))
+    divisor = IntegerValue(3, dtype=value.dtype)
+    for other in (
+        divisor,
+        np.int8(3),
+        np.array(3, dtype=np.int8),
+        np.array([3], dtype=np.int8),
+    ):
+        for left, right in ((value, other), (other, value)):
+            with pytest.raises(TypeError, match="ufunc"):
+                ufunc(left, right)

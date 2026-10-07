@@ -175,6 +175,32 @@ class IntegerValue:
     def __rtruediv__(self, other: object) -> rational.RationalValue:
         return self._peer(other).__truediv__(self)
 
+    def __floordiv__(self, other: object) -> IntegerValue:
+        """Floor the exact quotient, then check the shared integer dtype's range."""
+        return self._binary(other, operator.floordiv)
+
+    def __rfloordiv__(self, other: object) -> IntegerValue:
+        return self._peer(other).__floordiv__(self)
+
+    def __mod__(self, other: object) -> IntegerValue:
+        """Return the exact remainder, without requiring the quotient to fit."""
+        return self._binary(other, operator.mod)
+
+    def __rmod__(self, other: object) -> IntegerValue:
+        return self._peer(other).__mod__(self)
+
+    def __divmod__(self, other: object) -> tuple[IntegerValue, IntegerValue]:
+        """Return a checked quotient/remainder pair; no partial pair on failure."""
+        peer = self._peer(other)
+        quotient, remainder = divmod(int(self), int(peer))
+        return (
+            IntegerValue(quotient, dtype=self.dtype),
+            IntegerValue(remainder, dtype=self.dtype),
+        )
+
+    def __rdivmod__(self, other: object) -> tuple[IntegerValue, IntegerValue]:
+        return self._peer(other).__divmod__(self)
+
     def __neg__(self) -> IntegerValue:
         return IntegerValue(-int(self), dtype=self.dtype)
 

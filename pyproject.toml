@@ -16,6 +16,7 @@ dependencies = [
   "prompt-toolkit>=3.0.52",
   "rich>=15.0.0",
   "seaborn>=0.13.2",
+  "sympy>=1.14.0",
   "textual>=8.2.8",
 ]
 
@@ -42,6 +43,7 @@ testpaths = ["tests"]
 line-length = 88
 
 [tool.ruff.lint]
+allowed-confusables = ["ℕ", "ℤ", "ℚ", "ℝ", "ℂ"]
 select = [
   "E",  # Style errors
   "F",  # Undefined names, unused imports, etc.

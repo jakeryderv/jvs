@@ -96,10 +96,16 @@ Mixed dtypes and raw scalar arithmetic raise `TypeError`. Convert explicitly wit
 `.to(dtype)` before combining representations. Conversion applies the same input
 and target checks as construction; it cannot turn an integer wrapper into a
 floating or rational representation. Floor division (`//`), modulo, powers,
-ordering, and mixed-type promotion are outside this initial API. NumPy division
+and mixed-type promotion are outside this initial API. NumPy division
 ufuncs remain unsupported; use `/` for the checked exact operation.
 
 ## Equality and Hashing
+
+`<`, `<=`, `>`, and `>=` support [exact ordering](ordering.md) against integer,
+rational, floating, and fixed-point wrappers and supported raw integer scalars.
+Comparisons use stored values without common-dtype promotion or rounding, so
+large integers retain their full precision. Complex wrappers require explicit
+`.to_real()` first. NumPy ordering ufuncs follow the same scalar rules.
 
 Equality compares the exact integer value across wrapper dtypes and supported
 Python, NumPy, and SymPy integer scalars. Equal integers have matching hashes, so

@@ -10,7 +10,7 @@ from typing import Any, ClassVar, Never
 import numpy as np
 import sympy as sp
 
-from ._interop import scalar_equality_ufunc
+from ._interop import scalar_comparison_ufunc
 from .dtype import NumericKind, NumPyDType
 from .floating import FloatingInput, FloatingValue, _ratio
 
@@ -174,6 +174,13 @@ class ComplexValue:
         result = self.__eq__(other)
         return NotImplemented if result is NotImplemented else not result
 
+    def __lt__(self, other: object) -> Never:
+        raise TypeError("ComplexValue is unordered; use .to_real() explicitly")
+
+    __le__ = __lt__
+    __gt__ = __lt__
+    __ge__ = __lt__
+
     def _peer(self, other: object) -> ComplexValue:
         if not isinstance(other, ComplexValue):
             raise TypeError(
@@ -263,4 +270,4 @@ class ComplexValue:
     def __array_ufunc__(
         self, ufunc: np.ufunc, method: str, *inputs: object, **kwargs: object
     ) -> object:
-        return scalar_equality_ufunc(self, ufunc, method, *inputs, **kwargs)
+        return scalar_comparison_ufunc(self, ufunc, method, *inputs, **kwargs)

@@ -6,6 +6,7 @@ implementation of every planned module. The classification foundation lives in
 `number.py` with isolated backend adapters. `dtype.py` supplies representation
 descriptors. Checked integer, rational, floating, complex, and fixed-point wrappers are
 implemented, together with explicit scalar casting and arithmetic dispatch.
+Real-valued wrappers also support exact ordering across representations.
 Automatic promotion, additional precision backends, and
 array/storage APIs remain future work.
 
@@ -381,6 +382,13 @@ settings must be scoped to the operation without persistent global changes.
   produce exact rational results and discard history. Rescaling is explicit.
   Classification and equality use coefficient times step, never the coefficient
   alone. See [fixed-point values](fixed.md).
+- **Exact real ordering:** `<`, `<=`, `>`, and `>=` compare integer, rational,
+  floating, and fixed-point wrappers by their stored mathematical values, with
+  no casting, rounding, or mutation of provenance. Supported raw integer scalars
+  are accepted in either order; other raw numeric inputs require wrapping.
+  Complex wrappers are unordered, even with zero imaginary part; require explicit
+  `.to_real()` extraction. NumPy scalar ordering ufuncs preserve these rules and
+  operand direction. See [ordering](ordering.md) for dispatch boundaries.
 - **Explicit casting:** `cast(value, dtype, *, approximate=False)` accepts numeric
   wrappers and explicit descriptors, reusing the checked scalar APIs. Integer
   targets require integral values and target range checks; real targets require
@@ -403,7 +411,7 @@ descriptors remain available for future array/storage APIs. See
 [integer values](integer.md), [rational values](rational.md),
 [floating values](floating.md), [complex values](complex.md), [fixed-point values](fixed.md),
 [dtype descriptors](dtype.md), [explicit casting](casting.md), and
-[explicit arithmetic](arithmetic.md) for the implemented
+[explicit arithmetic](arithmetic.md), and [ordering](ordering.md) for the implemented
 APIs and their current limits. Arbitrary-precision computation contexts will be
 specified with their corresponding modules.
 

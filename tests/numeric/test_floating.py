@@ -440,7 +440,7 @@ def test_protocols_immutability_and_backend_boundaries() -> None:
     for conversion in (int, float, operator.index):
         with pytest.raises(TypeError):
             conversion(value)
-    for operation in (operator.floordiv, operator.mod, operator.pow, operator.lt):
+    for operation in (operator.floordiv, operator.mod, operator.pow):
         with pytest.raises(TypeError):
             operation(value, value)
     for ufunc in (np.add, np.subtract, np.multiply, np.divide):

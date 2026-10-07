@@ -15,7 +15,8 @@ import sympy as sp
 # Module-qualified references keep runtime annotations resolvable across the
 # integer/rational dependency without reading a class during partial import.
 from . import rational
-from ._interop import scalar_equality_ufunc
+from ._interop import scalar_comparison_ufunc
+from ._ordering import compare_real
 from ._repr import integer_repr
 from .dtype import ExactDType, NumericKind, NumPyDType
 
@@ -115,6 +116,18 @@ class IntegerValue:
         result = self.__eq__(other)
         return NotImplemented if result is NotImplemented else not result
 
+    def __lt__(self, other: object) -> bool:
+        return compare_real(self, other, operator.lt)
+
+    def __le__(self, other: object) -> bool:
+        return compare_real(self, other, operator.le)
+
+    def __gt__(self, other: object) -> bool:
+        return compare_real(self, other, operator.gt)
+
+    def __ge__(self, other: object) -> bool:
+        return compare_real(self, other, operator.ge)
+
     def _peer(self, other: object) -> IntegerValue:
         if not isinstance(other, IntegerValue):
             raise TypeError(
@@ -177,4 +190,4 @@ class IntegerValue:
     def __array_ufunc__(
         self, ufunc: np.ufunc, method: str, *inputs: object, **kwargs: object
     ) -> object:
-        return scalar_equality_ufunc(self, ufunc, method, *inputs, **kwargs)
+        return scalar_comparison_ufunc(self, ufunc, method, *inputs, **kwargs)

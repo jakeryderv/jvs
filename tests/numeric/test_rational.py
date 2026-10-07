@@ -312,7 +312,7 @@ def test_protocols_and_immutability() -> None:
             conversion(value)
     with pytest.raises(sp.SympifyError):
         sp.sympify(value)
-    for operation in (operator.floordiv, operator.mod, operator.pow, operator.lt):
+    for operation in (operator.floordiv, operator.mod, operator.pow):
         with pytest.raises(TypeError):
             operation(value, value)
 

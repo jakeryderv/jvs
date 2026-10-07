@@ -114,7 +114,14 @@ Other array operations and ufunc arithmetic are rejected, as are implicit SymPy
 coercions. Foreign comparison methods can return without calling our methods;
 unsupported-operand rejection applies when our methods run. See
 [comparison dispatch boundaries](integer.md#backend-boundaries).
-Ordering, powers, floor division, modulo, user-selected rounding modes,
+`<`, `<=`, `>`, and `>=` implement [exact ordering](ordering.md) across the four
+real-valued wrappers and supported raw integers. Comparisons retain the stored
+binary ratio, including extended precision and subnormal values, without any
+rounding or history changes. Both zero signs occupy the same place in the
+ordering. NumPy ordering ufuncs use these rules too. Complex wrappers require
+explicit `.to_real()` before ordering, even with zero imaginary part.
+
+Powers, floor division, modulo, user-selected rounding modes,
 permissive warning fallbacks, and arbitrary precision are deferred. `ComplexValue`
 composes two checked floating components. Pass this wrapper as its real component
 to preserve history; a complex wrapper's `to_real()` requires a zero imaginary

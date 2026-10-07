@@ -79,12 +79,18 @@ and its existing range and representation checks. Out-of-range values raise
 `OverflowError`. No truncation, rounding, or automatic widening occurs.
 
 There is no implicit `int`, index, or float conversion. `bool(x)` is false only
-for zero. Ordering, floor division, modulo, powers, and mixed-type promotion
+for zero. Floor division, modulo, powers, and mixed-type promotion
 remain deferred. Dividing two matching-dtype `IntegerValue` operands also produces
 a `RationalValue` directly, with these same exact ratio semantics; see
 [integer division](integer.md#checked-arithmetic-and-conversion).
 
 ## Equality, Hashing, and Backend Boundaries
+
+`<`, `<=`, `>`, and `>=` support [exact ordering](ordering.md) against integer,
+rational, floating, and fixed-point wrappers and supported raw integer scalars.
+Ordering compares exact stored ratios without conversion, including when a
+floating approximation lies very close to a rational. Complex wrappers require
+explicit `.to_real()` first. NumPy ordering ufuncs follow the same scalar rules.
 
 Equality compares reduced values across rational wrappers, integer wrappers,
 [floating wrappers](floating.md), [complex wrappers](complex.md),

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import numbers
+import operator
 from dataclasses import dataclass
 from decimal import Decimal
 from fractions import Fraction
@@ -12,7 +13,8 @@ import numpy as np
 import sympy as sp
 
 from . import floating
-from ._interop import scalar_equality_ufunc
+from ._interop import scalar_comparison_ufunc
+from ._ordering import compare_real
 from ._repr import integer_repr
 from .dtype import ExactDType, FixedDType, NumPyDType
 from .integer import IntegerDType, IntegerInput, IntegerValue, _input_integer
@@ -146,6 +148,18 @@ class FixedValue:
         result = self.__eq__(other)
         return NotImplemented if result is NotImplemented else not result
 
+    def __lt__(self, other: object) -> bool:
+        return compare_real(self, other, operator.lt)
+
+    def __le__(self, other: object) -> bool:
+        return compare_real(self, other, operator.le)
+
+    def __gt__(self, other: object) -> bool:
+        return compare_real(self, other, operator.gt)
+
+    def __ge__(self, other: object) -> bool:
+        return compare_real(self, other, operator.ge)
+
     def _peer(self, other: object) -> FixedValue:
         if not isinstance(other, FixedValue) or self.dtype != other.dtype:
             raise TypeError(
@@ -199,4 +213,4 @@ class FixedValue:
     def __array_ufunc__(
         self, ufunc: np.ufunc, method: str, *inputs: object, **kwargs: object
     ) -> object:
-        return scalar_equality_ufunc(self, ufunc, method, *inputs, **kwargs)
+        return scalar_comparison_ufunc(self, ufunc, method, *inputs, **kwargs)

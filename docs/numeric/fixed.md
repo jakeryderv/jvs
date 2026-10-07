@@ -110,5 +110,11 @@ arithmetic ufuncs, arrays, and options cannot bypass wrapper checks. SymPy
 conversion requires explicit extraction. Diagnostic representations abbreviate
 huge coefficients and step components without changing Python's digit limit.
 
-Ordering, powers, automatic promotion, user-selected rounding modes, decimal
+`<`, `<=`, `>`, and `>=` implement [exact ordering](ordering.md) by coefficient
+times step against all real-valued wrappers and supported raw integer scalars.
+Different steps do not need rescaling for comparison; history remains unchanged.
+NumPy ordering ufuncs follow the same rules. Complex wrappers must be explicitly
+converted with `.to_real()` before ordering.
+
+Powers, automatic promotion, user-selected rounding modes, decimal
 text parsing, and array/storage APIs remain deferred.

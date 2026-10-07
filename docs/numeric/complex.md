@@ -142,6 +142,11 @@ NumPy ufunc arithmetic and implicit SymPy coercion are rejected. Equality and
 inequality for the documented wrapper and integer operands work in either order,
 including NumPy's zero-dimensional integer array transport, without options such
 as `out` or `where`.
-Powers, magnitude, ordering, mixed-type promotion,
+Complex wrappers are deliberately unordered, including when the imaginary part
+is zero. `<`, `<=`, `>`, `>=`, and the NumPy ordering ufuncs raise `TypeError`
+when dispatched to the wrapper. Call `.to_real()` explicitly to use
+[real ordering](ordering.md); this conversion rejects a nonzero imaginary part.
+
+Powers, magnitude, mixed-type promotion,
 implicit Python complex conversion, and exact symbolic complex storage are
 outside this API.

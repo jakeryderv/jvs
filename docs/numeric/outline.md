@@ -8,9 +8,10 @@ descriptors. Checked integer, rational, floating, complex, and fixed-point wrapp
 implemented, together with explicit scalar casting and arithmetic dispatch.
 Real-valued wrappers also support exact ordering across representations.
 The [explicit promotion helper](promotion.md), `common_dtype`, selects a common
-operand representation from two descriptors.
-Automatic promotion, additional precision backends, and
-array/storage APIs remain future work.
+operand representation from two descriptors. [NumericBuffer](storage.md) provides
+owned, checked NumPy storage and scalar extraction. Automatic promotion,
+additional precision backends, array arithmetic, borrowed views, and shared or
+memory-mapped storage remain future work.
 
 ## Goal
 
@@ -423,14 +424,25 @@ settings must be scoped to the operation without persistent global changes.
   Integer division and fixed-point multiplication/division return exact rationals;
   other results retain the operand dtype. See the [result-type table](arithmetic.md#result-types). Existing
   operators remain strict and automatic promotion is deferred.
+- **Owned numeric storage:** `NumericBuffer(data, dtype=..., approximate=False)`
+  copies a plain typed NumPy array, then applies the scalar conversion rules to
+  each copied value before storing it. The target is an explicit native NumPy
+  integer, floating, or complex dtype. Shape is preserved, including empty and
+  zero-dimensional arrays. Complete integer coordinates extract checked scalar
+  wrappers with per-component rounding history. `to_numpy()` returns an
+  independent writable copy and explicitly drops wrapper history. The private
+  data and metadata are read-only; the public API exposes no mutation or views.
+  Source non-native byte order is decoded, while non-native target storage is
+  deferred. See [owned buffers](storage.md) for ownership and failure boundaries.
 
 `IntegerValue` implements these initial checked operations and exact integer
 conversions. Its NumPy scalar payload requires native byte order; non-native dtype
-descriptors remain available for future array/storage APIs. See
+descriptors remain available for future storage outputs. See
 [integer values](integer.md), [rational values](rational.md),
 [floating values](floating.md), [complex values](complex.md), [fixed-point values](fixed.md),
 [dtype descriptors](dtype.md), [explicit casting](casting.md),
-[explicit arithmetic](arithmetic.md), and [ordering](ordering.md) for the implemented
+[explicit arithmetic](arithmetic.md), [ordering](ordering.md), and
+[owned buffers](storage.md) for the implemented
 APIs and their current limits. Arbitrary-precision computation contexts will be
 specified with their corresponding modules.
 

@@ -42,6 +42,7 @@ from .number import (
     register_subset,
 )
 from .rational import RationalValue
+from .storage import NumericBuffer
 
 __all__ = [
     "Algebraic",
@@ -69,6 +70,7 @@ __all__ = [
     "NumPyDType",
     "Number",
     "NumberSetMeta",
+    "NumericBuffer",
     "NumericKind",
     "PrecisionLossError",
     "Rational",

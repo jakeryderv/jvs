@@ -138,6 +138,12 @@ describe coefficient storage, excluding descriptor metadata. A NumPy coefficient
 does not imply floating-point rounding or native NumPy fixed-point support.
 See [fixed-point values](fixed.md) for construction and rescaling.
 
+[NumericBuffer](storage.md) uses an explicit native `NumPyDType` for owned
+homogeneous integer, floating, or complex storage. It checks each input value
+under scalar conversion rules. Descriptors do not imply ownership: copying,
+scalar indexing, and independent exports belong to the buffer API. Exact and
+fixed-point buffer storage remain deferred.
+
 Decimal contexts and arbitrary-precision floating computation contexts remain
 deferred. They must not be squeezed into a NumPy dtype or assigned a fabricated
 fixed width.

@@ -525,6 +525,12 @@ Choose copying, restricted mutation, read-only access, revalidation, or controll
 
 Account for aliases and views that share storage.
 
+The initial [NumericBuffer](docs/numeric/storage.md) contract uses privately owned
+copies with read-only internal data and rounding metadata. Complete indexing
+extracts checked scalar wrappers; NumPy export returns an independent writable
+copy. Input arrays must not be concurrently mutated while the source snapshot is
+copied. Borrowed and shared storage require separate lifetime and mutation rules.
+
 ---
 
 ## Design Boundary

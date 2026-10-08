@@ -33,6 +33,13 @@ wrapper operator runs. Raw scalars and dtype strings are rejected. Existing
 operators remain strict about matching dtypes; these functions do not introduce
 automatic promotion.
 
+[`common_dtype(left, right)`](promotion.md) chooses an operand dtype from two
+explicit descriptors, covering both complete finite input value sets. It is
+exported from `jvs.numeric`. Inspect its result and pass it as the explicit
+`dtype` argument to these functions. Selecting a common dtype does not guarantee
+that an operation's result fits. Exact/approximate family mixtures and exhausted
+NumPy integer ranges require the caller to choose an explicit target.
+
 ## Result types
 
 `dtype` selects the **operand representation**, not an unconditional result dtype.

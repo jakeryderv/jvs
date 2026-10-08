@@ -7,6 +7,8 @@ implementation of every planned module. The classification foundation lives in
 descriptors. Checked integer, rational, floating, complex, and fixed-point wrappers are
 implemented, together with explicit scalar casting and arithmetic dispatch.
 Real-valued wrappers also support exact ordering across representations.
+The [explicit promotion helper](promotion.md), `common_dtype`, selects a common
+operand representation from two descriptors.
 Automatic promotion, additional precision backends, and
 array/storage APIs remain future work.
 
@@ -313,6 +315,17 @@ must be checked for both scalars and arrays; backend warning settings alone are
 insufficient. Widening or switching backends requires a documented policy, and
 mixed-backend operations must never silently downgrade exact values.
 
+The explicit scalar helper follows the
+[promotion decision table](promotion.md#family-decision-table):
+`common_dtype(left, right)` selects a representation covering both complete
+input value sets without inspecting values. It is opt-in; operators
+keep their current strict contracts. The table defines integer range unions,
+floating/component coverage, fixed-point common steps and scaled bounds, explicit
+backend combinations, and errors when no permitted common representation exists.
+In particular, exact/approximate family mixtures require an explicit target,
+and two NumPy inputs never silently fall back to SymPy. The helper is exported
+from `jvs.numeric`; selection does not guarantee that subsequent results fit.
+
 Finite mathematical value constructors reject nonfinite values by default.
 Representation APIs may explicitly support IEEE special values, but doing so
 does not make them members of the finite mathematical sets. Precision and error
@@ -336,7 +349,7 @@ settings must be scoped to the operation without persistent global changes.
   implicit float/rational conversions. Check bounds before converting. Initial
   addition, subtraction, multiplication, and unary negation preserve an explicitly
   shared operand dtype and raise on fixed-width overflow. Mixed representations
-  require explicit conversion; mixed-type promotion remains deferred. True
+  require explicit conversion; automatic operator promotion remains deferred. True
   division of matching integer dtypes always produces `RationalValue` with
   `ExactDType.rational()`, including integral results, without floating conversion
   or fixed-width overflow. Zero divisors raise `ZeroDivisionError`. Exact integer
@@ -416,7 +429,7 @@ conversions. Its NumPy scalar payload requires native byte order; non-native dty
 descriptors remain available for future array/storage APIs. See
 [integer values](integer.md), [rational values](rational.md),
 [floating values](floating.md), [complex values](complex.md), [fixed-point values](fixed.md),
-[dtype descriptors](dtype.md), [explicit casting](casting.md), and
+[dtype descriptors](dtype.md), [explicit casting](casting.md),
 [explicit arithmetic](arithmetic.md), and [ordering](ordering.md) for the implemented
 APIs and their current limits. Arbitrary-precision computation contexts will be
 specified with their corresponding modules.

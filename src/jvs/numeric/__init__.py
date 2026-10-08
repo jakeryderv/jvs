@@ -1,6 +1,6 @@
 """Mathematical numeric domains, classification, and representation descriptors."""
 
-from .arithmetic import add, divide, multiply, subtract
+from .arithmetic import add, common_dtype, divide, multiply, subtract
 from .casting import cast
 from .complex import ComplexValue
 from .dtype import (
@@ -83,6 +83,7 @@ __all__ = [
     "add",
     "cast",
     "classify",
+    "common_dtype",
     "divide",
     "multiply",
     "register_subset",

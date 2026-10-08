@@ -3,6 +3,9 @@
 `jvs.numeric.dtype` describes representations independently of mathematical sets,
 concrete values, and storage ownership. It does not construct or cast numeric
 values, infer their mathematical membership, or choose arithmetic promotion.
+The separate [`common_dtype(left, right)` helper](promotion.md) selects a common
+scalar representation from two explicit descriptors under a checked coverage
+policy; it performs no value conversion or arithmetic.
 
 ## Public API
 

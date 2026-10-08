@@ -106,5 +106,9 @@ In particular, casting a floating approximation of `1/3` to a rational produces
 its stored binary ratio, not `1/3`. Casting it back preserves those bits, but not
 the discarded rounding history.
 
-General promotion, permissive warning fallbacks, truncation, user-selected
+[`common_dtype(left, right)`](promotion.md) can explicitly select a target from
+two dtype descriptors before casting. Its coverage guarantee concerns complete
+stored-value domains; casts retain the metadata behavior documented above.
+
+Automatic promotion, permissive warning fallbacks, truncation, user-selected
 rounding modes, exact symbolic complex targets, and array casts remain deferred.

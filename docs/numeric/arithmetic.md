@@ -1,4 +1,4 @@
-# Explicit Scalar Arithmetic
+# Explicit Numeric Arithmetic
 
 `add`, `subtract`, `multiply`, and `divide` combine existing numeric wrappers in
 an explicitly selected operand representation:
@@ -42,7 +42,8 @@ NumPy integer ranges require the caller to choose an explicit target.
 
 ## Result types
 
-`dtype` selects the **operand representation**, not an unconditional result dtype.
+For scalar operands, `dtype` selects the **operand representation**, not an
+unconditional result dtype.
 
 | Requested operand dtype | `add`, `subtract` | `multiply` | `divide` |
 | --- | --- | --- | --- |
@@ -93,3 +94,58 @@ values and discards signed-zero and rounding-history metadata, as documented by
 Failures propagate from the existing conversion/arithmetic APIs. Operands are
 immutable and no partial result is returned. No backend-default promotion,
 permissive warning fallback, or alternate computation dtype is selected.
+
+## Elementwise buffer arithmetic
+
+`add`, `subtract`, and `multiply` also accept two [`NumericBuffer`](storage.md)
+operands. They require identical shapes and an explicit native `NumPyDType`
+target, and return a new buffer with that shape and dtype. Input dtypes may
+differ: each pair of elements is cast to the target before its checked scalar
+operation runs. The result owns independent, read-only data and rounding
+metadata; neither input changes, even when the same buffer supplies both operands.
+
+```python
+import numpy as np
+from jvs.numeric import NumericBuffer
+
+left = NumericBuffer(np.array([[120, 3]], dtype=np.int8), dtype=NumPyDType("int8"))
+right = NumericBuffer(np.array([[20, 4]], dtype=np.int16), dtype=NumPyDType("int16"))
+total = add(left, right, dtype=NumPyDType("int16"))
+assert total.shape == (1, 2) and total[0, 0] == 140 and total[0, 1] == 7
+assert multiply(left, right, dtype=NumPyDType("int16"))[0, 1] == 12
+
+try:
+    add(left, right, dtype=NumPyDType("int8"))
+except OverflowError as error:
+    assert any("(0, 0)" in note for note in error.__notes__)
+else:
+    raise AssertionError("Integer overflow must fail")
+assert left[0, 0] == 120 and right[0, 0] == 20
+```
+
+The scalar rules above also govern buffer operations:
+
+- `approximate=False` requires exact operand conversion, while subsequent
+  floating/complex arithmetic permits normal rounding. `approximate=True` permits
+  operand rounding for floating/complex targets and is rejected for integers.
+- Operands must individually fit before the operation. Integer results are
+  range-checked before storage; they never wrap or automatically widen.
+- Rounding history follows each cast and scalar operation. Floating/complex
+  results retain known history and add arithmetic rounding; integer casts discard
+  history. Complex component flags follow the scalar dependency rules.
+- Overflow, inexact underflow, nonintegral integer conversion, precision loss,
+  and nonzero imaginary parts entering real arithmetic retain their scalar
+  exceptions. Failures include the element coordinate as an exception note.
+  Traversal is in C order, and the first failed pair stops the operation;
+  no partial buffer is returned.
+- Zero-dimensional buffers operate with other zero-dimensional buffers. Empty
+  buffers preserve shape and still validate operand formats, target format, and
+  approximation policy. Shape mismatches raise `ValueError`, including shapes
+  that NumPy could broadcast.
+
+This is correctness-first scalar evaluation into owned output storage, not a
+vectorized kernel. No intermediate converted operand buffers are allocated.
+Mixed scalar/buffer arguments, raw ndarrays, exact/fixed-point buffer targets,
+implicit promotion, broadcasting, reductions, operators, and ufuncs are outside
+this API. Buffer division raises `TypeError` for all targets; exact rational
+result storage must be settled before extending division consistently.

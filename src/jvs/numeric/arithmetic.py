@@ -6,6 +6,7 @@ import operator
 from collections.abc import Callable
 from fractions import Fraction
 from math import gcd, lcm
+from typing import overload
 
 import numpy as np
 
@@ -13,6 +14,7 @@ from .casting import NumericValue, ScalarDType, cast
 from .dtype import ExactDType, FixedDType, FloatingInfo, NumericKind, NumPyDType
 from .floating import _format, _ratio
 from .integer import IntegerDType
+from .storage import NumericBuffer, _validate_conversion
 
 
 def _validate_scalar_dtype(dtype: ScalarDType) -> None:
@@ -146,41 +148,129 @@ def _apply(
     return operation(left, right)
 
 
+def _dispatch(
+    operation: Callable[[NumericValue, NumericValue], NumericValue],
+    a: NumericValue | NumericBuffer,
+    b: NumericValue | NumericBuffer,
+    dtype: ScalarDType,
+    approximate: bool,
+) -> NumericValue | NumericBuffer:
+    if isinstance(a, NumericBuffer) or isinstance(b, NumericBuffer):
+        if not isinstance(a, NumericBuffer) or not isinstance(b, NumericBuffer):
+            raise TypeError("Buffer arithmetic requires two NumericBuffer operands")
+        if not isinstance(dtype, NumPyDType):
+            raise TypeError("Buffer arithmetic requires an explicit NumPyDType")
+        if a.shape != b.shape:
+            raise ValueError(
+                f"Buffer arithmetic requires identical shapes: {a.shape!r} != {b.shape!r}"
+            )
+        _validate_conversion(a.dtype, dtype, approximate)
+        _validate_conversion(b.dtype, dtype, approximate)
+        return NumericBuffer._from_elements(
+            a.shape,
+            dtype,
+            lambda index: _apply(operation, a[index], b[index], dtype, approximate),
+            context="arithmetic",
+        )
+    return _apply(operation, a, b, dtype, approximate)
+
+
+@overload
 def add(
     a: NumericValue,
     b: NumericValue,
     *,
     dtype: ScalarDType,
     approximate: bool = False,
-) -> NumericValue:
+) -> NumericValue: ...
+
+
+@overload
+def add(
+    a: NumericBuffer,
+    b: NumericBuffer,
+    *,
+    dtype: NumPyDType,
+    approximate: bool = False,
+) -> NumericBuffer: ...
+
+
+def add(
+    a: NumericValue | NumericBuffer,
+    b: NumericValue | NumericBuffer,
+    *,
+    dtype: ScalarDType,
+    approximate: bool = False,
+) -> NumericValue | NumericBuffer:
     """Cast operands, then add with checked arithmetic in the requested dtype.
 
     ``approximate`` controls operand conversion only; floating/complex arithmetic
     retains its normal rounding rules even when this option is false.
+    Two buffers require identical shapes and a native NumPy target.
     """
-    return _apply(operator.add, a, b, dtype, approximate)
+    return _dispatch(operator.add, a, b, dtype, approximate)
 
 
+@overload
 def subtract(
     a: NumericValue,
     b: NumericValue,
     *,
     dtype: ScalarDType,
     approximate: bool = False,
-) -> NumericValue:
-    """Cast operands, then subtract b from a; results retain the operand dtype."""
-    return _apply(operator.sub, a, b, dtype, approximate)
+) -> NumericValue: ...
 
 
+@overload
+def subtract(
+    a: NumericBuffer,
+    b: NumericBuffer,
+    *,
+    dtype: NumPyDType,
+    approximate: bool = False,
+) -> NumericBuffer: ...
+
+
+def subtract(
+    a: NumericValue | NumericBuffer,
+    b: NumericValue | NumericBuffer,
+    *,
+    dtype: ScalarDType,
+    approximate: bool = False,
+) -> NumericValue | NumericBuffer:
+    """Subtract scalars or matching-shape buffers in the requested representation."""
+    return _dispatch(operator.sub, a, b, dtype, approximate)
+
+
+@overload
 def multiply(
     a: NumericValue,
     b: NumericValue,
     *,
     dtype: ScalarDType,
     approximate: bool = False,
-) -> NumericValue:
-    """Cast operands, then multiply using the target wrapper's checked rules."""
-    return _apply(operator.mul, a, b, dtype, approximate)
+) -> NumericValue: ...
+
+
+@overload
+def multiply(
+    a: NumericBuffer,
+    b: NumericBuffer,
+    *,
+    dtype: NumPyDType,
+    approximate: bool = False,
+) -> NumericBuffer: ...
+
+
+def multiply(
+    a: NumericValue | NumericBuffer,
+    b: NumericValue | NumericBuffer,
+    *,
+    dtype: ScalarDType,
+    approximate: bool = False,
+) -> NumericValue | NumericBuffer:
+    """Multiply scalars or matching-shape buffers using checked scalar rules."""
+    return _dispatch(operator.mul, a, b, dtype, approximate)
 
 
 def divide(
@@ -194,4 +284,6 @@ def divide(
 
     Other operand families retain their dtype. Zero divisors raise explicitly.
     """
+    if isinstance(a, NumericBuffer) or isinstance(b, NumericBuffer):
+        raise TypeError("Buffer division is not implemented")
     return _apply(operator.truediv, a, b, dtype, approximate)

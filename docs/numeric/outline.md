@@ -10,7 +10,9 @@ Real-valued wrappers also support exact ordering across representations.
 The [explicit promotion helper](promotion.md), `common_dtype`, selects a common
 operand representation from two descriptors. [NumericBuffer](storage.md) provides
 owned, checked NumPy storage, scalar extraction, and explicit dtype conversion.
-Automatic promotion, additional precision backends, array arithmetic, borrowed views, and shared or
+Explicit addition, subtraction, and multiplication also support buffers with
+identical shapes. Automatic promotion, additional precision backends, broadcasting,
+reductions, buffer division, borrowed views, and shared or
 memory-mapped storage remain future work.
 
 ## Goal
@@ -423,7 +425,13 @@ settings must be scoped to the operation without persistent global changes.
   controls operand conversion only, not normal floating arithmetic rounding.
   Integer division and fixed-point multiplication/division return exact rationals;
   other results retain the operand dtype. See the [result-type table](arithmetic.md#result-types). Existing
-  operators remain strict and automatic promotion is deferred.
+  operators remain strict and automatic promotion is deferred. `add`, `subtract`,
+  and `multiply` also accept two buffers with identical shapes and an explicit
+  native NumPy target. Each pair uses checked scalar casts and arithmetic, with
+  independent result storage and coordinate-specific failures. Approximation
+  controls operand conversion only; scalar rounding-history rules still apply.
+  Empty buffers validate formats and policy. Broadcasting, reductions, mixed
+  scalar/buffer arguments, and buffer division are deferred.
 - **Owned numeric storage:** `NumericBuffer(data, dtype=..., approximate=False)`
   copies a plain typed NumPy array, then applies the scalar conversion rules to
   each copied value before storing it. The target is an explicit native NumPy

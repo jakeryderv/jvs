@@ -2,7 +2,9 @@
 
 `NumericBuffer(data, *, dtype, approximate=False)` stores an owned homogeneous
 NumPy array of checked finite integer, floating, or complex values. This first
-API provides storage and scalar access; it has no array arithmetic or promotion.
+API provides storage, scalar access, and explicit conversion.
+[`add`, `subtract`, and `multiply`](arithmetic.md#elementwise-buffer-arithmetic)
+provide checked elementwise arithmetic for two buffers with identical shapes.
 
 ## Construction and ownership
 
@@ -74,9 +76,9 @@ types raise `TypeError`; wrong coordinate counts or out-of-range positions raise
 `IndexError`. An extracted element is an immutable `IntegerValue`, `FloatingValue`,
 or `ComplexValue` whose dtype equals the buffer dtype.
 
-`rounded` is true when any element carries known rounding from construction or
-conversion. Per-element real/imaginary rounding flags are retained, so extraction restores
-each component's own history. False is not a claim about external accuracy.
+`rounded` is true when any element carries known rounding from construction,
+conversion, or arithmetic. Per-element real/imaginary rounding flags are retained,
+so extraction restores each component's own history. False is not a claim about external accuracy.
 Floating zero signs are preserved according to scalar casting rules: conversion
 to integer discards signs, and real-to-complex adds positive imaginary zero.
 
@@ -137,10 +139,10 @@ recover it. Use scalar extraction or direct `to()` conversion when the flags mat
 
 Implicit NumPy conversion and ufuncs raise `TypeError` and direct callers to
 `to_numpy()`. There is no mutation interface, implicit iteration, scalar truth
-value, elementwise equality, ordering, broadcasting, reduction, or arithmetic.
+value, elementwise equality, ordering, broadcasting, reduction, or operator arithmetic.
 Buffer equality uses ordinary object identity. Mathematical membership in
 `number.py` remains scalar-only; query extracted values individually.
 
-Borrowed views, shared memory, memory mapping, checked array arithmetic, exact
+Borrowed views, shared memory, memory mapping, buffer division, exact
 and fixed-point storage, slicing, and aggregate classification remain separate
 future work. `jvs.core` is not involved.

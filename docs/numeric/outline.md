@@ -9,8 +9,8 @@ implemented, together with explicit scalar casting and arithmetic dispatch.
 Real-valued wrappers also support exact ordering across representations.
 The [explicit promotion helper](promotion.md), `common_dtype`, selects a common
 operand representation from two descriptors. [NumericBuffer](storage.md) provides
-owned, checked NumPy storage and scalar extraction. Automatic promotion,
-additional precision backends, array arithmetic, borrowed views, and shared or
+owned, checked NumPy storage, scalar extraction, and explicit dtype conversion.
+Automatic promotion, additional precision backends, array arithmetic, borrowed views, and shared or
 memory-mapped storage remain future work.
 
 ## Goal
@@ -429,7 +429,10 @@ settings must be scoped to the operation without persistent global changes.
   each copied value before storing it. The target is an explicit native NumPy
   integer, floating, or complex dtype. Shape is preserved, including empty and
   zero-dimensional arrays. Complete integer coordinates extract checked scalar
-  wrappers with per-component rounding history. `to_numpy()` returns an
+  wrappers with per-component rounding history. `to(dtype, approximate=False)`
+  creates independent storage, preserving shape and applying scalar casting's
+  exactness and history rules to every element. Failures report the coordinate
+  and leave the source unchanged. `to_numpy()` returns an
   independent writable copy and explicitly drops wrapper history. The private
   data and metadata are read-only; the public API exposes no mutation or views.
   Source non-native byte order is decoded, while non-native target storage is

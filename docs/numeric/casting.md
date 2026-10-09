@@ -111,7 +111,9 @@ two dtype descriptors before casting. Its coverage guarantee concerns complete
 stored-value domains; casts retain the metadata behavior documented above.
 
 Automatic promotion, permissive warning fallbacks, truncation, user-selected
-rounding modes, exact symbolic complex targets, and buffer-to-buffer casts remain
+rounding modes, and exact symbolic complex targets remain
 deferred. [NumericBuffer](storage.md) construction provides checked conversion
 from a typed NumPy array into owned storage using these scalar policies; `cast`
-itself still accepts only scalar wrappers.
+itself still accepts only scalar wrappers. `buffer.to(dtype, approximate=False)`
+provides direct checked buffer conversion, with independent storage and the same
+rounding-history rules as scalar casts.

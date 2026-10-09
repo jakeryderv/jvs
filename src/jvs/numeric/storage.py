@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any, Never
 
@@ -28,6 +29,40 @@ def _wrap_scalar(value: object, dtype: NumPyDType) -> BufferScalar:
     raise TypeError("NumericBuffer requires integer, floating, or complex scalars")
 
 
+def _validate_conversion(
+    source: NumPyDType, dtype: NumPyDType, approximate: bool
+) -> None:
+    if not isinstance(dtype, NumPyDType):
+        raise TypeError("NumericBuffer requires an explicit NumPyDType")
+    # Validate both scalar formats and approximation policy even for empties.
+    sample = _wrap_scalar(source.numpy_dtype.type(0), source)
+    cast(sample, dtype, approximate=approximate)
+
+
+def _convert_elements(
+    shape: tuple[int, ...],
+    get_scalar: Callable[[tuple[int, ...]], BufferScalar],
+    dtype: NumPyDType,
+    approximate: bool,
+) -> tuple[NDArray[Any], NDArray[np.uint8]]:
+    stored = np.empty(shape, dtype=dtype.numpy_dtype, order="C")
+    rounding = np.zeros(shape, dtype=np.uint8)
+    for index in np.ndindex(shape):
+        try:
+            result = cast(get_scalar(index), dtype, approximate=approximate)
+        except (TypeError, ValueError, OverflowError, FloatingPointError) as error:
+            error.add_note(f"NumericBuffer conversion failed at index {index}.")
+            raise
+        stored[index] = result.value
+        if isinstance(result, ComplexValue):
+            rounding[index] = int(result.real.rounded) | (int(result.imag.rounded) << 1)
+        elif isinstance(result, FloatingValue):
+            rounding[index] = int(result.rounded)
+    stored.setflags(write=False)
+    rounding.setflags(write=False)
+    return stored, rounding
+
+
 @dataclass(frozen=True, slots=True, init=False, eq=False)
 class NumericBuffer:
     """A private copied array; public exports never share its storage.
@@ -51,31 +86,14 @@ class NumericBuffer:
         # Validate source metadata before resolving byte order or copying data.
         source = NumPyDType(data.dtype)
         source = NumPyDType(source.numpy_dtype.newbyteorder("="))
-        # Validate both scalar formats and approximation policy even for empties.
-        sample = _wrap_scalar(source.numpy_dtype.type(0), source)
-        cast(sample, dtype, approximate=approximate)
+        _validate_conversion(source, dtype, approximate)
         snapshot = data.copy(order="C")
-        stored = np.empty(snapshot.shape, dtype=dtype.numpy_dtype, order="C")
-        rounding = np.zeros(snapshot.shape, dtype=np.uint8)
-        for index in np.ndindex(snapshot.shape):
-            try:
-                result = cast(
-                    _wrap_scalar(snapshot[index], source),
-                    dtype,
-                    approximate=approximate,
-                )
-            except (TypeError, ValueError, OverflowError, FloatingPointError) as error:
-                error.add_note(f"NumericBuffer conversion failed at index {index}.")
-                raise
-            stored[index] = result.value
-            if isinstance(result, ComplexValue):
-                rounding[index] = int(result.real.rounded) | (
-                    int(result.imag.rounded) << 1
-                )
-            elif isinstance(result, FloatingValue):
-                rounding[index] = int(result.rounded)
-        stored.setflags(write=False)
-        rounding.setflags(write=False)
+        stored, rounding = _convert_elements(
+            snapshot.shape,
+            lambda index: _wrap_scalar(snapshot[index], source),
+            dtype,
+            approximate,
+        )
         object.__setattr__(self, "dtype", dtype)
         object.__setattr__(self, "_data", stored)
         object.__setattr__(self, "_rounding", rounding)
@@ -94,7 +112,7 @@ class NumericBuffer:
 
     @property
     def rounded(self) -> bool:
-        """Whether any component was rounded during checked construction."""
+        """Whether any component carries known rounding history."""
         return bool(np.any(self._rounding))
 
     def __len__(self) -> int:
@@ -144,6 +162,23 @@ class NumericBuffer:
                 self.dtype,
             )
         return value
+
+    def to(self, dtype: NumPyDType, *, approximate: bool = False) -> NumericBuffer:
+        """Convert into independent storage using scalar casting/history rules.
+
+        Shape is preserved, and conversion must be exact unless approximation
+        is requested. Floating and complex targets retain known rounding;
+        integer targets discard it after integrality and range checks.
+        """
+        _validate_conversion(self.dtype, dtype, approximate)
+        stored, rounding = _convert_elements(
+            self.shape, self.__getitem__, dtype, approximate
+        )
+        result = object.__new__(NumericBuffer)
+        object.__setattr__(result, "dtype", dtype)
+        object.__setattr__(result, "_data", stored)
+        object.__setattr__(result, "_rounding", rounding)
+        return result
 
     def to_numpy(self) -> NDArray[Any]:
         """Export a fresh writable copy, explicitly discarding wrapper history."""

@@ -74,8 +74,8 @@ types raise `TypeError`; wrong coordinate counts or out-of-range positions raise
 `IndexError`. An extracted element is an immutable `IntegerValue`, `FloatingValue`,
 or `ComplexValue` whose dtype equals the buffer dtype.
 
-`rounded` is true when any element carries known rounding from construction.
-Per-element real/imaginary rounding flags are retained, so extraction restores
+`rounded` is true when any element carries known rounding from construction or
+conversion. Per-element real/imaginary rounding flags are retained, so extraction restores
 each component's own history. False is not a claim about external accuracy.
 Floating zero signs are preserved according to scalar casting rules: conversion
 to integer discards signs, and real-to-complex adds positive imaginary zero.
@@ -97,13 +97,43 @@ assert isinstance(half, FloatingValue) and not half.rounded
 assert isinstance(tenth, FloatingValue) and tenth.rounded
 ```
 
+## Direct buffer conversion
+
+`buffer.to(dtype, *, approximate=False)` converts every element into a new owned
+buffer with the same shape. The target must be an explicit native `NumPyDType`.
+The same format checks, exact-by-default policy, approximation options, and
+indexed failures apply as in construction, including validation for empty
+buffers. The source remains unchanged on success or failure. Even a conversion
+to the same dtype creates independent data and rounding metadata.
+
+Floating and complex targets retain each component's known rounding history and
+add any new rounding. Exact conversion means preserving the current stored value;
+it does not require that the source's history be unrounded. Widening therefore
+does not recover an earlier value or clear its history. Complex-to-real conversion
+requires zero imaginary value and combines both components' known history, as in
+scalar casting. Integer targets require integrality and range checks, then discard
+rounding history and zero signs. They reject `approximate=True`.
+
+```python
+widened = rounded.to(NumPyDType("float64"))
+assert widened.shape == rounded.shape and widened.rounded
+assert widened[1] == rounded[1]  # Widening preserves the stored float32 value.
+assert widened[1].rounded
+independent = widened.to(widened.dtype)
+assert independent is not widened and independent[1].rounded
+```
+
+Direct conversion uses scalar checks and allocates target data plus one byte of
+rounding metadata per element. It reads the existing buffer without a source
+snapshot, since the public API cannot mutate its storage.
+
 ## NumPy export and limits
 
 `to_numpy()` returns a new writable, C-contiguous ndarray with the same shape,
 dtype, and stored values. Every call makes an independent copy. It exposes no
 view, base array, or rounding mask from the buffer. Export transfers numerical
 control to NumPy and drops wrapper rounding history; reimporting that array cannot
-recover it. Use scalar extraction when the flags matter.
+recover it. Use scalar extraction or direct `to()` conversion when the flags matter.
 
 Implicit NumPy conversion and ufuncs raise `TypeError` and direct callers to
 `to_numpy()`. There is no mutation interface, implicit iteration, scalar truth
@@ -112,5 +142,5 @@ Buffer equality uses ordinary object identity. Mathematical membership in
 `number.py` remains scalar-only; query extracted values individually.
 
 Borrowed views, shared memory, memory mapping, checked array arithmetic, exact
-and fixed-point storage, slicing, buffer-to-buffer conversion, and aggregate
-classification remain separate future work. `jvs.core` is not involved.
+and fixed-point storage, slicing, and aggregate classification remain separate
+future work. `jvs.core` is not involved.

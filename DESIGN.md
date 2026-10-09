@@ -527,9 +527,11 @@ Account for aliases and views that share storage.
 
 The initial [NumericBuffer](docs/numeric/storage.md) contract uses privately owned
 copies with read-only internal data and rounding metadata. Complete indexing
-extracts checked scalar wrappers; NumPy export returns an independent writable
-copy. Input arrays must not be concurrently mutated while the source snapshot is
-copied. Borrowed and shared storage require separate lifetime and mutation rules.
+extracts checked scalar wrappers; direct dtype conversion creates independent
+storage using scalar exactness and rounding-history rules. NumPy export returns
+an independent writable copy and discards that history. Input arrays must not be
+concurrently mutated while the source snapshot is copied. Borrowed and shared
+storage require separate lifetime and mutation rules.
 
 ---
 
